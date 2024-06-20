@@ -14,16 +14,16 @@ def set_attrs(obj, data: dict):
         for key, value in data.items():
             setattr(obj, key, value)
 
+
 # Base class for SQLAlchemy models
 class Base(DeclarativeBase):
     pass
 
 # Database connection string (consider using environment variables in production)
-#engine = create_engine('mysql+mysqldb://DevAuth:Abcd1234@localhost/DevDb', echo=True)
-engine = create_engine('mysql+pymysql://DevAuth:Abcd1234@localhost/DevDb?charset=utf8mb4',echo=True)
+engine = create_engine('mysql+pymysql://DevUser:Password@localhost/DevDb,echo=True)
 
 
-# Define the StudentEntity model representing the "students" table
+# Define the OrderTeaEntity model representing the "order_teas" table
 class OrderTeaEntity(Base):
     __tablename__ = "order_teas"
 
@@ -43,8 +43,6 @@ contact = {
     "name" : "Drink_Menu",
     "url" : "https://www.pret.co.uk/en-GB/products/categories/hot-drinks"
 }
-
-
 
 
 app = FastAPI(title=' Infrastructure Team Cafe Time Tea Order API',
@@ -81,11 +79,12 @@ def get_db_session():
     finally:
         db_session.close()
 
-# Endpoint to get a list of all students
+# Endpoint to get a list of all Order Tea
 @app.get('/order_teas', tags=["Query All Tea Orders"], response_model=List[OrderTeaOut])
 async def get_order_teas(db_session: Session = Depends(get_db_session)):
     query = select(OrderTeaEntity).order_by(asc(OrderTeaEntity.order_name))
     return db_session.execute(query).scalars().all()
+
 
 # Endpoint to create a new order_teas
 @app.post('/order_teas', tags=["Add Tea Order"], response_model=OrderTeaOut)
@@ -96,7 +95,7 @@ async def create_ordertea(order_teas: OrderTeaCreate, db_session: Session = Depe
     if records:
         raise HTTPException(status_code=400, detail=f'Order Tea {order_teas.order_name} already exists')
     
-    # Create a new student record
+    # Create a new Order Tea record
     orderteas_entity = OrderTeaEntity(tea_name=order_teas.tea_name, order_name=order_teas.order_name)
     db_session.add(orderteas_entity)
     db_session.commit()
@@ -118,11 +117,6 @@ def check_ordertea_exist(order_id: int, db_session: Session):
 async def update_ordertea(*, order_id: int = Path(...), order_teas: OrderTeaUpdate,
                         db_session: Session = Depends(get_db_session)):
     exist_ordertea = check_ordertea_exist(order_id, db_session)
-   
-    # update_query = update(StudentEntity).values(student.model_dump()).where(StudentEntity.id == student_id)
-    # db_session.execute(update_query)
-    # exist_student.name = student.name
-    # exist_student.gender = student.gender
     
     set_attrs(exist_ordertea, order_teas.model_dump())
     
@@ -140,11 +134,6 @@ async def delete_student(order_id: int = Path(...), db_session: Session = Depend
     db_session.commit()
     
     return exist_ordertea
-
-    # query = select(StudentEntity).where(StudentEntity.id == student_id)
-    # exist_student = db_session.execute(query).scalar()
-    # if not exist_student:
-    #     raise HTTPException(status_code=404, detail=f'Student id({student_id}) not found')
 
 
 if __name__ == '__main__':
